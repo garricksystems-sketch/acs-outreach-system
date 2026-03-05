@@ -1,0 +1,187 @@
+{
+  "name": "WF-EMAIL-01 — Pull & Queue Email Leads",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300],
+      "id": "schedule-trigger-001",
+      "name": "Daily 8AM CST Mon-Fri"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://n8n.wadeglobal.ai/api/v1/databases/Z9xgFeurri2kwJ8P/rows",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "limit", "value": "50" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "id": "fetch-leads-001",
+      "name": "Fetch Leads from Data Table"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "filter-email-exists",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [700, 300],
+      "id": "filter-has-email-001",
+      "name": "Filter: Has Email"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "filter-not-emailed",
+              "leftValue": "={{ $json.email_status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [940, 300],
+      "id": "filter-not-emailed-001",
+      "name": "Filter: Not Yet Emailed"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"firstName\": \"{{ $json.contact_name ? $json.contact_name.split(' ')[0] : '' }}\",\n  \"lastName\": \"{{ $json.contact_name ? $json.contact_name.split(' ').slice(1).join(' ') : '' }}\",\n  \"companyName\": \"{{ $json.business_name }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"phone\": \"{{ $json.phone || '' }}\",\n  \"locationId\": \"YOUR_GHL_LOCATION_ID_ACS\",\n  \"tags\": [\"email-sequence-cold\", \"ai-outreach\", \"{{ $json.facility_type || 'commercial' }}\"],\n  \"source\": \"ai-pipeline\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 300],
+      "id": "create-ghl-contact-001",
+      "name": "Create GHL Contact"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://n8n.wadeglobal.ai/api/v1/databases/Z9xgFeurri2kwJ8P/rows/{{ $('Filter: Not Yet Emailed').item.json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"email_status\": \"queued\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1420, 300],
+      "id": "update-status-001",
+      "name": "Update email_status → queued"
+    },
+    {
+      "parameters": {
+        "content": "## WF-EMAIL-01 — Pull & Queue Email Leads\n\nRuns Mon-Fri at 8AM CST.\nPulls up to 50 leads with email from data table.\nCreates GHL contacts with cold email tags.\nUpdates data table status to 'queued'.\n\n⚠️ SETUP REQUIRED:\n1. Add N8N API key credential (for data table access)\n2. Add GHL API key credential (for contact creation)\n3. Replace YOUR_GHL_LOCATION_ID_ACS with actual ID\n4. Test with 2-3 leads before running full batch",
+        "height": 320,
+        "width": 400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [180, 40],
+      "typeVersion": 1,
+      "id": "setup-note-001",
+      "name": "Setup Instructions"
+    }
+  ],
+  "connections": {
+    "Daily 8AM CST Mon-Fri": {
+      "main": [
+        [{ "node": "Fetch Leads from Data Table", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Leads from Data Table": {
+      "main": [
+        [{ "node": "Filter: Has Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter: Has Email": {
+      "main": [
+        [{ "node": "Filter: Not Yet Emailed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter: Not Yet Emailed": {
+      "main": [
+        [{ "node": "Create GHL Contact", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create GHL Contact": {
+      "main": [
+        [{ "node": "Update email_status → queued", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago"
+  }
+}
