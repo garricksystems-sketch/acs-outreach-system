@@ -56,20 +56,26 @@
 
 ## File Index
 
-| File | What It Is | Status |
-|------|-----------|--------|
-| `CONTEXT.md` | Full context for Claude Code | ✅ Ready |
-| `SYSTEM_MAP.md` | This file — visual architecture | ✅ Ready |
-| `EMAIL_OUTREACH_SYSTEM.md` | Email strategy blueprint | ✅ Ready |
-| `LINKEDIN_OUTREACH_FRAMEWORK.md` | LinkedIn ICP + sequences | ✅ Ready |
-| `COLD_CALLING_FRAMEWORK.md` | Calling strategy (reference) | ✅ Ready |
-| `TRE_EMAIL_ADDON_BRIEF.md` | Build brief + Claude prompts | ✅ Ready |
-| `INBOX_AGENT_SYSTEM_SPEC.md` | Inbox triage spec | ✅ Ready |
-| `workflows/WF-EMAIL-01-PULL-AND-QUEUE.json` | N8N: pull leads + create GHL contacts | ✅ Import ready |
-| `workflows/WF-EMAIL-02-GHL-SEQUENCE-SPEC.md` | GHL: 3-email sequence (build in GHL UI) | ✅ Ready |
-| `workflows/WF-EMAIL-03-REPLY-DETECTION.json` | N8N: catch replies + route to pipeline | ✅ Import ready |
-| `workflows/WF-LINKEDIN-01-OUTREACH-SPEC.md` | LinkedIn: Waalaxy campaigns + N8N integration | ✅ Ready |
-| `workflows/ACS_INBOX_AGENT_SYSTEM.json` | N8N: Gmail inbox multi-agent triage | ✅ Import ready |
+| File | What It Is | Build Where | Status |
+|------|-----------|-------------|--------|
+| `CONTEXT.md` | Full context for Claude Code | Reference | ✅ Ready |
+| `SYSTEM_MAP.md` | This file — visual architecture | Reference | ✅ Ready |
+| `EMAIL_OUTREACH_SYSTEM.md` | Email strategy blueprint | Reference | ✅ Ready |
+| `LINKEDIN_OUTREACH_FRAMEWORK.md` | LinkedIn ICP + sequences | Reference | ✅ Ready |
+| `COLD_CALLING_FRAMEWORK.md` | Calling strategy (reference) | Reference | ✅ Ready |
+| `TRE_EMAIL_ADDON_BRIEF.md` | Build brief + Claude prompts | Reference | ✅ Ready |
+| `INBOX_AGENT_SYSTEM_SPEC.md` | Inbox triage spec | Reference | ✅ Ready |
+| **N8N Workflows (Import JSON)** | | | |
+| `workflows/WF-EMAIL-01-PULL-AND-QUEUE.json` | Pull leads + create GHL contacts | N8N Import | ✅ Ready |
+| `workflows/WF-EMAIL-03-REPLY-DETECTION.json` | Catch replies + route to pipeline | N8N Import | ✅ Ready |
+| `workflows/WF-EMAIL-04-TRACKING.json` | Daily email stats → Telegram report | N8N Import | ✅ Ready |
+| `workflows/ACS_INBOX_AGENT_SYSTEM.json` | Multi-agent Gmail inbox triage | N8N Import | ✅ Ready |
+| **GHL Automations (Build in GHL UI)** | | | |
+| `workflows/WF-EMAIL-02-GHL-SEQUENCE-SPEC.md` | 3-email cold sequence | GHL Automations | ✅ Spec Ready |
+| `workflows/WF-WALKTHROUGH-BOOKING.md` | Interested → send booking link → reminders | GHL Automations | ✅ Spec Ready |
+| `workflows/GHL-AUTOMATION-FOLLOWUP.md` | Post-walkthrough, proposal, win-back, no-show | GHL Automations | ✅ Spec Ready |
+| **LinkedIn (Build in Waalaxy)** | | | |
+| `workflows/WF-LINKEDIN-01-OUTREACH-SPEC.md` | 8 ICP campaigns + 3-touch sequences | Waalaxy | ✅ Spec Ready |
 
 ## Credentials Needed (Enter in N8N, NOT in files)
 1. GHL API Key (ACS location) → for contact/opportunity creation
