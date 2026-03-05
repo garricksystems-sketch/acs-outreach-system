@@ -1,0 +1,110 @@
+{
+  "name": "WF-EMAIL-04 — Daily Email Stats",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 1-5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300],
+      "id": "schedule-004",
+      "name": "Daily 6PM CST Mon-Fri"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://services.leadconnectorhq.com/contacts/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "locationId", "value": "YOUR_GHL_LOCATION_ID_ACS" },
+            { "name": "query", "value": "email-sequence-cold" },
+            { "name": "limit", "value": "100" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "id": "get-cold-contacts-004",
+      "name": "Get Cold Email Contacts"
+    },
+    {
+      "parameters": {
+        "jsCode": "const contacts = $input.all();\nconst today = new Date().toISOString().split('T')[0];\n\nlet stats = {\n  date: today,\n  total_in_sequence: 0,\n  email_interested: 0,\n  email_not_interested: 0,\n  email_sequence_complete: 0,\n  email_queued: 0,\n  unsubscribed: 0\n};\n\nfor (const item of contacts) {\n  const tags = item.json.tags || [];\n  stats.total_in_sequence++;\n  if (tags.includes('email-interested')) stats.email_interested++;\n  if (tags.includes('email-not-interested')) stats.email_not_interested++;\n  if (tags.includes('email-sequence-complete')) stats.email_sequence_complete++;\n  if (tags.includes('email-sequence-cold')) stats.email_queued++;\n  if (tags.includes('unsubscribed')) stats.unsubscribed++;\n}\n\nstats.response_rate = stats.total_in_sequence > 0 \n  ? ((stats.email_interested + stats.email_not_interested) / stats.total_in_sequence * 100).toFixed(1) + '%'\n  : '0%';\nstats.positive_rate = stats.total_in_sequence > 0\n  ? (stats.email_interested / stats.total_in_sequence * 100).toFixed(1) + '%'\n  : '0%';\n\nreturn [{ json: stats }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300],
+      "id": "calc-stats-004",
+      "name": "Calculate Stats"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"-1003701036517\",\n  \"message_thread_id\": 9,\n  \"text\": \"📊 ACS EMAIL DAILY REPORT — {{ $json.date }}\\n\\n📨 In Sequence: {{ $json.total_in_sequence }}\\n✅ Interested: {{ $json.email_interested }}\\n❌ Not Interested: {{ $json.email_not_interested }}\\n✉️ Sequence Complete: {{ $json.email_sequence_complete }}\\n⏳ Queued: {{ $json.email_queued }}\\n🚫 Unsubscribed: {{ $json.unsubscribed }}\\n\\n📈 Response Rate: {{ $json.response_rate }}\\n🎯 Positive Rate: {{ $json.positive_rate }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 300],
+      "id": "telegram-report-004",
+      "name": "Post Daily Report → ACS Topic"
+    },
+    {
+      "parameters": {
+        "content": "## WF-EMAIL-04 — Daily Email Stats\n\nRuns Mon-Fri at 6PM CST.\nPulls all contacts tagged email-sequence-cold.\nCalculates: interested, not interested, complete, queued, unsub.\nPosts daily report to Telegram topic:9 (ACS).\n\n⚠️ SETUP:\n1. Wire GHL API credential\n2. Replace YOUR_GHL_LOCATION_ID_ACS\n3. Add TELEGRAM_BOT_TOKEN to N8N env vars",
+        "height": 250,
+        "width": 400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [180, 40],
+      "typeVersion": 1,
+      "id": "setup-note-004",
+      "name": "Setup Instructions"
+    }
+  ],
+  "connections": {
+    "Daily 6PM CST Mon-Fri": {
+      "main": [
+        [{ "node": "Get Cold Email Contacts", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Cold Email Contacts": {
+      "main": [
+        [{ "node": "Calculate Stats", "type": "main", "index": 0 }]
+      ]
+    },
+    "Calculate Stats": {
+      "main": [
+        [{ "node": "Post Daily Report → ACS Topic", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago"
+  }
+}
