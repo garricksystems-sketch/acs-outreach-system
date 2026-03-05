@@ -1,0 +1,216 @@
+{
+  "name": "WF-EMAIL-03 — Reply Detection",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-reply-webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "id": "webhook-reply-001",
+      "name": "GHL Reply Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-positive-reply",
+              "leftValue": "={{ ($json.body.message || $json.body.text || '').toLowerCase() }}",
+              "rightValue": "(yes|interested|walkthrough|sure|sounds good|let's do it|set it up|schedule|come by|absolutely|definitely|open to|love to|down for|when can you|available|free to|let me know|come check|take a look)",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [460, 300],
+      "id": "check-positive-001",
+      "name": "Positive Reply?"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.body.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"tags\": [\"email-interested\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 200],
+      "id": "tag-interested-001",
+      "name": "Tag as Interested"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"pipelineId\": \"4BQb45bxmAFhiSCSU35e\",\n  \"pipelineStageId\": \"fabe9eff-921c-4a6c-a711-98e87797b3f1\",\n  \"locationId\": \"YOUR_GHL_LOCATION_ID_ACS\",\n  \"contactId\": \"{{ $json.body.contactId }}\",\n  \"name\": \"{{ $json.body.contactName || 'Email Lead' }}\",\n  \"status\": \"open\",\n  \"source\": \"cold-email\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 200],
+      "id": "create-opportunity-001",
+      "name": "Create Opportunity → Walkthrough Scheduled"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"-1003701036517\",\n  \"message_thread_id\": 9,\n  \"text\": \"🔥 EMAIL LEAD INTERESTED\\n\\nName: {{ $json.body.contactName || 'Unknown' }}\\nCompany: {{ $json.body.companyName || 'Unknown' }}\\nReply: {{ ($json.body.message || '').substring(0, 200) }}\\n\\nAction: Book walkthrough ASAP\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 200],
+      "id": "telegram-alert-001",
+      "name": "Telegram Alert → ACS Topic"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://n8n.wadeglobal.ai/api/v1/databases/Z9xgFeurri2kwJ8P/rows/{{ $json.body.dataTableRowId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"email_status\": \"interested\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1420, 200],
+      "id": "update-interested-001",
+      "name": "Update Data Table → interested"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $json.body.contactId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Version", "value": "2021-07-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"tags\": [\"email-not-interested\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 500],
+      "id": "tag-not-interested-001",
+      "name": "Tag as Not Interested"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://n8n.wadeglobal.ai/api/v1/databases/Z9xgFeurri2kwJ8P/rows/{{ $json.body.dataTableRowId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"email_status\": \"not_interested\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 500],
+      "id": "update-not-interested-001",
+      "name": "Update Data Table → not_interested"
+    },
+    {
+      "parameters": {
+        "content": "## WF-EMAIL-03 — Reply Detection\n\nReceives GHL webhook when contact replies to cold email.\nChecks if reply is positive (interested) or negative.\n\nPositive → Tag interested → Create opportunity at Walkthrough Scheduled → Telegram alert → Update data table\nNegative → Tag not interested → Update data table\n\n⚠️ SETUP:\n1. Wire GHL API credential\n2. Wire N8N API credential (for data table updates)\n3. Set up GHL webhook to POST to: https://n8n.wadeglobal.ai/webhook/email-reply-webhook\n4. Replace YOUR_GHL_LOCATION_ID_ACS\n5. Add TELEGRAM_BOT_TOKEN to N8N environment variables",
+        "height": 300,
+        "width": 500,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [180, 40],
+      "typeVersion": 1,
+      "id": "setup-note-003",
+      "name": "Setup Instructions"
+    }
+  ],
+  "connections": {
+    "GHL Reply Webhook": {
+      "main": [
+        [{ "node": "Positive Reply?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Positive Reply?": {
+      "main": [
+        [{ "node": "Tag as Interested", "type": "main", "index": 0 }],
+        [{ "node": "Tag as Not Interested", "type": "main", "index": 0 }]
+      ]
+    },
+    "Tag as Interested": {
+      "main": [
+        [{ "node": "Create Opportunity → Walkthrough Scheduled", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Opportunity → Walkthrough Scheduled": {
+      "main": [
+        [{ "node": "Telegram Alert → ACS Topic", "type": "main", "index": 0 }]
+      ]
+    },
+    "Telegram Alert → ACS Topic": {
+      "main": [
+        [{ "node": "Update Data Table → interested", "type": "main", "index": 0 }]
+      ]
+    },
+    "Tag as Not Interested": {
+      "main": [
+        [{ "node": "Update Data Table → not_interested", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago"
+  }
+}
