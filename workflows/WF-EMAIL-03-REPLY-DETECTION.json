@@ -91,21 +91,6 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"chat_id\": \"-1003701036517\",\n  \"message_thread_id\": 9,\n  \"text\": \"🔥 EMAIL LEAD INTERESTED\\n\\nName: {{ $json.body.contactName || 'Unknown' }}\\nCompany: {{ $json.body.companyName || 'Unknown' }}\\nReply: {{ ($json.body.message || '').substring(0, 200) }}\\n\\nAction: Book walkthrough ASAP\"\n}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1180, 200],
-      "id": "telegram-alert-001",
-      "name": "Telegram Alert → ACS Topic"
-    },
-    {
-      "parameters": {
         "method": "PATCH",
         "url": "=https://n8n.wadeglobal.ai/api/v1/databases/Z9xgFeurri2kwJ8P/rows/{{ $json.body.dataTableRowId }}",
         "authentication": "genericCredentialType",
@@ -117,7 +102,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1420, 200],
+      "position": [1180, 200],
       "id": "update-interested-001",
       "name": "Update Data Table → interested"
     },
@@ -163,7 +148,7 @@
     },
     {
       "parameters": {
-        "content": "## WF-EMAIL-03 — Reply Detection\n\nReceives GHL webhook when contact replies to cold email.\nChecks if reply is positive (interested) or negative.\n\nPositive → Tag interested → Create opportunity at Walkthrough Scheduled → Telegram alert → Update data table\nNegative → Tag not interested → Update data table\n\n⚠️ SETUP:\n1. Wire GHL API credential\n2. Wire N8N API credential (for data table updates)\n3. Set up GHL webhook to POST to: https://n8n.wadeglobal.ai/webhook/email-reply-webhook\n4. Replace YOUR_GHL_LOCATION_ID_ACS\n5. Add TELEGRAM_BOT_TOKEN to N8N environment variables",
+        "content": "## WF-EMAIL-03 — Reply Detection\n\nReceives GHL webhook when contact replies to cold email.\nChecks if reply is positive (interested) or negative.\n\nPositive → Tag interested → Create opportunity at Walkthrough Scheduled → Update data table\nNegative → Tag not interested → Update data table\n\nInbox Agent handles the actual reply conversation.\nThis workflow handles GHL pipeline routing only.\n\n⚠️ SETUP:\n1. Wire GHL API credential\n2. Wire N8N API credential (for data table updates)\n3. Set up GHL webhook to POST to: https://n8n.wadeglobal.ai/webhook/email-reply-webhook\n4. Replace YOUR_GHL_LOCATION_ID_ACS",
         "height": 300,
         "width": 500,
         "color": 4
@@ -193,11 +178,6 @@
       ]
     },
     "Create Opportunity → Walkthrough Scheduled": {
-      "main": [
-        [{ "node": "Telegram Alert → ACS Topic", "type": "main", "index": 0 }]
-      ]
-    },
-    "Telegram Alert → ACS Topic": {
       "main": [
         [{ "node": "Update Data Table → interested", "type": "main", "index": 0 }]
       ]
